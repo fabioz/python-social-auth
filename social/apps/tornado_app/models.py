@@ -15,17 +15,31 @@ class TornadoStorage(BaseSQLAlchemyStorage):
     nonce = None
     association = None
     code = None
+    
+    _AppSession = None
+    _Base = None
 
 
 def init_social(Base, session, settings):
+    if TornadoStorage._AppSession is not None:
+        # Initialize only once. New calls are expected to have the same Base
+        # and will set the session to be the new session passed.
+        assert Base == TornadoStorage._Base
+        TornadoStorage._AppSession.__use_db_session__ = session
+        return
+    
+    
     UID_LENGTH = settings.get(setting_name('UID_LENGTH'), 255)
     User = module_member(settings[setting_name('USER_MODEL')])
-    app_session = session
 
     class _AppSession(object):
         @classmethod
         def _session(cls):
-            return app_session
+            return _AppSession.__use_db_session__
+
+    _AppSession.__use_db_session__ = session
+    TornadoStorage._AppSession = _AppSession
+    TornadoStorage._Base = Base
 
     class UserSocialAuth(_AppSession, Base, SQLAlchemyUserMixin):
         """Social Auth association model"""
