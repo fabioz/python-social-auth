@@ -42,13 +42,13 @@ class TornadoStrategy(BaseStrategy):
         self.request_handler.write(content)
 
     def session_get(self, name, default=None):
-        value = self.request_handler.get_secure_cookie(name)
+        value = self.request_handler.session_data.get(name)
         if value:
-            return json.loads(value.decode())
+            return json.loads(value)
         return default
 
     def session_set(self, name, value):
-        self.request_handler.set_secure_cookie(name, json.dumps(value).encode())
+        self.request_handler.session_data[name] = json.dumps(value)
 
     def session_pop(self, name):
         value = self.session_get(name)

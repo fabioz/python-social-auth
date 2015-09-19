@@ -4,9 +4,31 @@ from social.apps.tornado_app.utils import psa
 from social.actions import do_auth, do_complete, do_disconnect
 
 
+class _SessionApi(object):
+    
+    def __init__(self, request_handler):
+        self.request_handler = request_handler
+        
+    def get(self, key):
+        ret = self.request_handler.get_secure_cookie(key)
+        return ret.decode('utf-8')
+    
+    def __setitem__(self, key, val):
+        self.request_handler.set_secure_cookie(key, val.encode('utf-8'))
+    
+
 class BaseHandler(RequestHandler):
+    
+    # Clients may monkey-patch to handle session in some other way.
+    # Receives the handler as a parameter.
+    _create_session_api = _SessionApi
+    
+    @property
+    def session_data(self):
+        return BaseHandler._create_session_api(self)
+    
     def user_id(self):
-        return self.get_secure_cookie('user_id')
+        return self.session_data.get('user_id')
 
     def get_current_user(self):
         user_id = self.user_id()
@@ -14,7 +36,7 @@ class BaseHandler(RequestHandler):
             return self.backend.strategy.get_user(int(user_id))
 
     def login_user(self, user):
-        self.set_secure_cookie('user_id', str(user.id))
+        self.session_data['user_id'] = str(user.id)
 
 
 class AuthHandler(BaseHandler):
