@@ -1,4 +1,3 @@
-import json
 import six
 
 from tornado.template import Loader, Template
@@ -42,18 +41,13 @@ class TornadoStrategy(BaseStrategy):
         self.request_handler.write(content)
 
     def session_get(self, name, default=None):
-        value = self.request_handler.session_data.get(name)
-        if value:
-            return json.loads(value)
-        return default
+        return self.request_handler.session_data.get(name)
 
     def session_set(self, name, value):
-        self.request_handler.session_data[name] = json.dumps(value)
+        self.request_handler.session_data[name] = value
 
     def session_pop(self, name):
-        value = self.session_get(name)
-        self.request_handler.clear_cookie(name)
-        return value
+        return self.request_handler.session_data.pop(name)
 
     def session_setdefault(self, name, value):
         pass
@@ -62,14 +56,3 @@ class TornadoStrategy(BaseStrategy):
         return build_absolute_uri('{0}://{1}'.format(self.request.protocol,
                                                      self.request.host),
                                   path)
-
-    def partial_to_session(self, next, backend, request=None, *args, **kwargs):
-        return json.dumps(super(TornadoStrategy, self).partial_to_session(
-            next, backend, request=request, *args, **kwargs
-        ))
-
-    def partial_from_session(self, session):
-        if session:
-            return super(TornadoStrategy, self).partial_to_session(
-                json.loads(session)
-            )
