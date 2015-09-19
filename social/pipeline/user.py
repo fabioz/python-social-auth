@@ -87,8 +87,9 @@ def user_details(strategy, details, user=None, *args, **kwargs):
                 # Check https://github.com/omab/python-social-auth/issues/671
                 current_value = getattr(user, name, None)
                 if not current_value or name not in protected:
-                    changed |= current_value != value
-                    setattr(user, name, value)
+                    if current_value != value:
+                        changed = True
+                        setattr(user, name, value)
 
         if changed:
             strategy.storage.user.changed(user)
