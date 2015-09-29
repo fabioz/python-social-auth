@@ -3,6 +3,7 @@ from tornado.web import RequestHandler
 from social.apps.tornado_app.utils import psa
 from social.actions import do_auth, do_complete, do_disconnect
 import json
+from social.exceptions import NotAllowedToDisconnect
 
 
 class _SessionApi(object):
@@ -78,5 +79,17 @@ class CompleteHandler(BaseHandler):
 
 
 class DisconnectHandler(BaseHandler):
-    def post(self):
-        do_disconnect()
+    
+    @psa('disconnect')
+    def post(self, backend, association_id):
+        current_user = self.current_user
+        if current_user is None:
+            self.finish('Error: user must be logged in to disconnect association.')
+            return
+        
+        try:
+            do_disconnect(self.backend, current_user, association_id)
+        except NotAllowedToDisconnect:
+            self.finish('Error: cannot disconnect because this is the last association for this account.')
+            return
+    get = post

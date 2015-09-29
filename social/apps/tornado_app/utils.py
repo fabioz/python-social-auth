@@ -2,9 +2,9 @@ import warnings
 
 from functools import wraps
 
-from social.utils import setting_name
+from social.utils import setting_name, module_member
 from social.strategies.utils import get_strategy
-from social.backends.utils import get_backend
+from social.backends.utils import get_backend, user_backends_data
 
 
 DEFAULTS = {
@@ -13,9 +13,12 @@ DEFAULTS = {
 }
 
 
-def get_helper(request_handler, name):
-    return request_handler.settings.get(setting_name(name),
+def get_helper(request_handler, name, do_import=False):
+    ret = request_handler.settings.get(setting_name(name),
                                         DEFAULTS.get(name, None))
+    if do_import:
+        return module_member(ret)
+    return ret
 
 
 def load_strategy(request_handler):
@@ -29,6 +32,11 @@ def load_backend(request_handler, strategy, name, redirect_uri):
     Backend = get_backend(backends, name)
     return Backend(strategy, redirect_uri)
 
+def backends(request_handler, user):
+    """Load Social Auth current user data to context under the key 'backends'.
+    Will return the output of social.backends.utils.user_backends_data."""
+    return user_backends_data(user, get_helper(request_handler, 'AUTHENTICATION_BACKENDS'),
+                              get_helper(request_handler, 'STORAGE', do_import=True))
 
 def psa(redirect_uri=None):
     def decorator(func):
