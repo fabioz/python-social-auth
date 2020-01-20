@@ -3,7 +3,6 @@ import base64
 import six
 import json
 
-
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.types import PickleType, Text
@@ -13,16 +12,26 @@ from social.storage.base import UserMixin, AssociationMixin, NonceMixin, \
                                 CodeMixin, BaseStorage
 
 
+class _JsonPickler(object):
+
+    def dumps(self, obj, *args, **kwargs):
+        json.dumps(obj)
+
+    def loads(self, s, *args, **kwargs):
+        return json.loads(s)
+
+
 # JSON type field
 class JSONType(PickleType):
     impl = Text
 
     def __init__(self, *args, **kwargs):
-        kwargs['pickler'] = json
+        kwargs['pickler'] = _JsonPickler()
         super(JSONType, self).__init__(*args, **kwargs)
 
 
 class SQLAlchemyMixin(object):
+
     @classmethod
     def _session(cls):
         raise NotImplementedError('Implement in subclass')
